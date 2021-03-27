@@ -2,6 +2,7 @@ package mflix.api.daos;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.*;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -13,6 +14,10 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import static com.mongodb.client.model.Filters.all;
+import static com.mongodb.client.model.Projections.fields;
+import static com.mongodb.client.model.Projections.include;
 
 @Component
 public class MovieDao extends AbstractMFlixDao {
@@ -118,10 +123,15 @@ public class MovieDao extends AbstractMFlixDao {
      */
     public List<Document> getMoviesByCountry(String... country) {
 
-        Bson queryFilter = new Document();
-        Bson projection = new Document();
-        //TODO> Ticket: Projection - implement the query and projection required by the unit test
+        Bson queryFilter = all("countries", country);
+        Bson projection = fields(include("title"));
+
+        MongoCursor<Document> moviesCursor = moviesCollection.find(queryFilter).projection(projection).iterator();
+
         List<Document> movies = new ArrayList<>();
+        while(moviesCursor.hasNext()) {
+            movies.add(moviesCursor.next());
+        }
 
         return movies;
     }
