@@ -5,6 +5,7 @@ import com.mongodb.MongoWriteException;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
@@ -31,9 +32,9 @@ import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 public class UserDao extends AbstractMFlixDao {
 
     private final MongoCollection<User> usersCollection;
-    //TODO> Ticket: User Management - do the necessary changes so that the sessions collection
+    //User Management - do the necessary changes so that the sessions collection
     //returns a Session object
-    private final MongoCollection<Document> sessionsCollection;
+    private final MongoCollection<Session> sessionsCollection;
 
     private final Logger log;
 
@@ -48,9 +49,9 @@ public class UserDao extends AbstractMFlixDao {
 
         usersCollection = db.getCollection("users", User.class).withCodecRegistry(pojoCodecRegistry);
         log = LoggerFactory.getLogger(this.getClass());
-        //TODO> Ticket: User Management - implement the necessary changes so that the sessions
+        // Ticket: User Management - implement the necessary changes so that the sessions
         // collection returns a Session objects instead of Document objects.
-        sessionsCollection = db.getCollection("sessions");
+        sessionsCollection = db.getCollection("sessions", Session.class).withCodecRegistry(pojoCodecRegistry);
     }
 
     /**
@@ -76,9 +77,10 @@ public class UserDao extends AbstractMFlixDao {
      * @return true if successful
      */
     public boolean createUserSession(String userId, String jwt) {
-        //TODO> Ticket: User Management - implement the method that allows session information to be
+        // Ticket: User Management - implement the method that allows session information to be
         // stored in it's designated collection.
-        return false;
+        sessionsCollection.insertOne(new Session(userId, jwt));
+        return true;
         //TODO > Ticket: Handling Errors - implement a safeguard against
         // creating a session with the same jwt token.
     }
@@ -90,9 +92,9 @@ public class UserDao extends AbstractMFlixDao {
      * @return User object or null.
      */
     public User getUser(String email) {
-        User user = null;
-        //TODO> Ticket: User Management - implement the query that returns the first User object.
-        return user;
+        // Ticket: User Management - implement the query that returns the first User object.
+        Bson findUserByEmailQuery = Filters.eq("email", email);
+        return usersCollection.find(findUserByEmailQuery).first();
     }
 
     /**
@@ -102,14 +104,17 @@ public class UserDao extends AbstractMFlixDao {
      * @return Session object or null.
      */
     public Session getUserSession(String userId) {
-        //TODO> Ticket: User Management - implement the method that returns Sessions for a given
+        // Ticket: User Management - implement the method that returns Sessions for a given
         // userId
-        return null;
+        Bson findUserByUserIdQuery = Filters.eq("user_id", userId);
+        return sessionsCollection.find(findUserByUserIdQuery).first();
     }
 
     public boolean deleteUserSessions(String userId) {
-        //TODO> Ticket: User Management - implement the delete user sessions method
-        return false;
+        // User Management - implement the delete user sessions method
+        Bson userToDeleteQuery = Filters.eq("user_id", userId);
+        DeleteResult deleteSessionResult = sessionsCollection.deleteOne(userToDeleteQuery);
+        return deleteSessionResult.getDeletedCount() > 0;
     }
 
     /**
@@ -120,10 +125,16 @@ public class UserDao extends AbstractMFlixDao {
      */
     public boolean deleteUser(String email) {
         // remove user sessions
-        //TODO> Ticket: User Management - implement the delete user method
+        // User Management - implement the delete user method
+        Bson userToDeleteQuery = Filters.eq("email", email);
+        DeleteResult deleteUserResult = usersCollection.deleteOne(userToDeleteQuery);
+
+        Bson sessionToDeleteQuery = Filters.eq("user_id", email);
+        sessionsCollection.deleteMany(sessionToDeleteQuery);
+
+        return deleteUserResult.getDeletedCount() > 0;
         //TODO > Ticket: Handling Errors - make this method more robust by
         // handling potential exceptions.
-        return false;
     }
 
     /**
