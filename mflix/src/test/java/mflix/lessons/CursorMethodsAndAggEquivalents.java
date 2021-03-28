@@ -48,7 +48,7 @@ public class CursorMethodsAndAggEquivalents extends AbstractLesson {
   public void setUp() {
     /*
      * Before we get started, looking into our cursor methods and aggregation
-     * stages, I'm going to create a 100 documents in dummy collection.
+     * stages, I'm going to create a 1000 documents in dummy collection.
      */
     List<Document> documents = new ArrayList<>();
     for (int i = 0; i < 1000; i++) {
@@ -86,7 +86,7 @@ public class CursorMethodsAndAggEquivalents extends AbstractLesson {
     // The number of elements should match the total 1000 documents inserted
     Assert.assertEquals(1000, sortedArray.size());
 
-    // And the the document of the array should have an `i` value of 999
+    // And the document of the array should have an `i` value of 999
     Assert.assertEquals(Integer.valueOf(999), sortedArray.get(0).getInteger("i"));
   }
 
