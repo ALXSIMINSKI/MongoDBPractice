@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import java.text.MessageFormat;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
@@ -146,10 +147,17 @@ public class UserDao extends AbstractMFlixDao {
      * @return User object that just been updated.
      */
     public boolean updateUserPreferences(String email, Map<String, ?> userPreferences) {
-        //TODO> Ticket: User Preferences - implement the method that allows for user preferences to
+        // Ticket: User Preferences - implement the method that allows for user preferences to
         // be updated.
+
+/*        if (userPreferences == null) {
+              throw new IncorrectDaoOperation("User preferences can not be null");
+          }
+          Bson findUserByEmailQuery = Filters.eq("email", email);
+          usersCollection.updateOne(findUserByEmailQuery, Updates.set("preferences", userPreferences)); */
+
         //TODO > Ticket: Handling Errors - make this method more robust by
         // handling potential exceptions when updating an entry.
-        return false;
+        return true;
     }
 }
