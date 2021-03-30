@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Configuration;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
@@ -80,7 +81,11 @@ public class UserDao extends AbstractMFlixDao {
     public boolean createUserSession(String userId, String jwt) {
         // Ticket: User Management - implement the method that allows session information to be
         // stored in it's designated collection.
-        sessionsCollection.insertOne(new Session(userId, jwt));
+        if (Optional.ofNullable(sessionsCollection.find( Filters.eq("user_id", userId) ).first()).isPresent()) {
+            sessionsCollection.updateOne(Filters.eq("user_id", userId), Updates.set("jwt", jwt));
+        } else {
+            sessionsCollection.insertOne(new Session(userId, jwt));
+        }
         return true;
         //TODO > Ticket: Handling Errors - implement a safeguard against
         // creating a session with the same jwt token.
@@ -150,11 +155,22 @@ public class UserDao extends AbstractMFlixDao {
         // Ticket: User Preferences - implement the method that allows for user preferences to
         // be updated.
 
-/*        if (userPreferences == null) {
-              throw new IncorrectDaoOperation("User preferences can not be null");
-          }
-          Bson findUserByEmailQuery = Filters.eq("email", email);
-          usersCollection.updateOne(findUserByEmailQuery, Updates.set("preferences", userPreferences)); */
+        if (userPreferences == null || userPreferences.isEmpty()) {
+            throw new IncorrectDaoOperation("User preferences can not be null of empty");
+        }
+
+        Bson findUserByEmailQuery = Filters.eq("email", email);
+        Document prefsDoc = new Document();
+
+        for (String prefKey : userPreferences.keySet()) {
+            prefsDoc.append(prefKey, String.valueOf(userPreferences.get(prefKey)));
+        }
+
+        usersCollection.updateOne(
+                findUserByEmailQuery,
+                Updates.set("preferences", prefsDoc),
+                new UpdateOptions().upsert(true)
+        );
 
         //TODO > Ticket: Handling Errors - make this method more robust by
         // handling potential exceptions when updating an entry.
