@@ -3,13 +3,16 @@ package mflix.api.daos;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoWriteException;
 import com.mongodb.ReadConcern;
+import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.*;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import mflix.api.models.Comment;
 import mflix.api.models.Critic;
+import mflix.api.models.User;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -33,9 +37,13 @@ import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 public class CommentDao extends AbstractMFlixDao {
 
     public static String COMMENT_COLLECTION = "comments";
+    public static String USERS_COLLECTION = "users";
     private final Logger log;
     private MongoCollection<Comment> commentCollection;
     private CodecRegistry pojoCodecRegistry;
+
+    @Autowired
+    private UserDao userDao;
 
     @Autowired
     public CommentDao(
@@ -160,13 +168,40 @@ public class CommentDao extends AbstractMFlixDao {
      * @return List {@link Critic} objects.
      */
     public List<Critic> mostActiveCommenters() {
-        List<Critic> mostActive = new ArrayList<>();
-        // // TODO> Ticket: User Report - execute a command that returns the
+        // // Ticket: User Report - execute a command that returns the
         // // list of 20 users, group by number of comments. Don't forget,
         // // this report is expected to be produced with an high durability
         // // guarantee for the returned documents. Once a commenter is in the
         // // top 20 of users, they become a Critic, so mostActive is composed of
         // // Critic objects.
+        List<Critic> mostActive = new ArrayList<>();
+        List<Document> pipeline = new ArrayList<>();
+        pipeline.addAll(Arrays.asList(new Document("$lookup",
+                        new Document("from", "comments")
+                                .append("let",
+                                        new Document("email", "$email"))
+                                .append("pipeline", Arrays.asList(new Document("$match",
+                                                new Document("$expr",
+                                                        new Document("$eq", Arrays.asList("$email", "$$email")))),
+                                        new Document("$count", "count")))
+                                .append("as", "count")),
+                new Document("$sort",
+                        new Document("count", -1L)),
+                new Document("$limit", 20L),
+                new Document("$project",
+                        new Document("name", 0L)
+                                .append("password", 0L)),
+                new Document("$unwind",
+                        new Document("path", "$count"))));
+        MongoCollection<Document> usersCollection = db.getCollection(USERS_COLLECTION)
+                .withCodecRegistry(pojoCodecRegistry)
+                .withReadConcern(ReadConcern.MAJORITY);
+        usersCollection.aggregate(pipeline).iterator().forEachRemaining(doc -> {
+            mostActive.add(
+                    new Critic(doc.get("email").toString(),
+                    MovieDocumentMapper.parseInt(((Document)doc.get("count")).get("count")))
+            );
+        });
         return mostActive;
     }
 }
