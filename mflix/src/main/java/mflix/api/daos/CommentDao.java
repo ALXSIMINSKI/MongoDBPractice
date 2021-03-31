@@ -136,12 +136,20 @@ public class CommentDao extends AbstractMFlixDao {
      * @return true if successful deletes the comment.
      */
     public boolean deleteComment(String commentId, String email) {
-        // TODO> Ticket Delete Comments - Implement the method that enables the deletion of a user
+        // Ticket Delete Comments - Implement the method that enables the deletion of a user
         // comment
+        if (commentId == null) {
+            throw new IncorrectDaoOperation("comment id is null");
+        }
+        Bson findCommentToDelete = Filters.and(
+                Filters.eq("_id", new ObjectId(commentId)),
+                       Filters.eq("email", email)
+        );
+        DeleteResult deleteResult = commentCollection.deleteOne(findCommentToDelete);
         // TIP: make sure to match only users that own the given commentId
         // TODO> Ticket Handling Errors - Implement a try catch block to
         // handle a potential write exception when given a wrong commentId.
-        return false;
+        return deleteResult.getDeletedCount() > 0;
     }
 
     /**
