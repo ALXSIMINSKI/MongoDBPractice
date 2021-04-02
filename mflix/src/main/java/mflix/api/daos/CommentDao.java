@@ -43,9 +43,6 @@ public class CommentDao extends AbstractMFlixDao {
     private CodecRegistry pojoCodecRegistry;
 
     @Autowired
-    private UserDao userDao;
-
-    @Autowired
     public CommentDao(
             MongoClient mongoClient, @Value("${spring.mongodb.database}") String databaseName) {
         super(mongoClient, databaseName);

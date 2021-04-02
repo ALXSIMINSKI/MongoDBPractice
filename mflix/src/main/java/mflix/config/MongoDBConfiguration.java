@@ -24,8 +24,31 @@ public class MongoDBConfiguration {
 
         ConnectionString connString = new ConnectionString(connectionString);
 
-        //TODO> Ticket: Handling Timeouts - configure the expected
+        // Ticket: Handling Timeouts - configure the expected
         // WriteConcern `wtimeout` and `connectTimeoutMS` values
+
+// ------ Possible solution, but made in URI
+
+//        final MongoClientSettings settings = MongoClientSettings
+//                .builder()
+//                .applicationName("mflix")
+//                .applyConnectionString(connString)
+//                .writeConcern(new WriteConcern("majority").withWTimeout(2500, TimeUnit.MILLISECONDS))
+//                .applyToClusterSettings(builder -> builder.applyConnectionString(connString)
+//                        .serverSelectionTimeout(5000, TimeUnit.MILLISECONDS)
+//                        .build())
+//                .applyToConnectionPoolSettings(builder -> builder.applyConnectionString(connString)
+//                        .maxSize(50)
+//                        .build())
+//                .applyToSocketSettings(builder -> builder.applyConnectionString(connString)
+//                        .connectTimeout(2000, TimeUnit.MILLISECONDS)
+//                        .build())
+//                .build();
+//
+//        MongoClient mongoClient = MongoClients.create(settings);
+//
+//        return mongoClient;
+
         MongoClient mongoClient = MongoClients.create(connectionString);
 
         return mongoClient;
