@@ -1,8 +1,6 @@
 package mflix.api.daos;
 
-import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoWriteException;
-import com.mongodb.WriteConcern;
+import com.mongodb.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -63,12 +61,20 @@ public class UserDao extends AbstractMFlixDao {
      * @return True if successful, throw IncorrectDaoOperation otherwise
      */
     public boolean addUser(User user) {
-        //TODO > Ticket: Durable Writes -  you might want to use a more durable write concern here!
-        usersCollection.insertOne(user);
-        return true;
-        //TODO > Ticket: Handling Errors - make sure to only add new users
-        // and not users that already exist.
+        //Ticket: Durable Writes -  you might want to use a more durable write concern here!
 
+        // Ticket: Handling Errors - make sure to only add new users
+        // and not users that already exist.
+        if(usersCollection.find(Filters.eq("email", user.getEmail())).first() != null) {
+            throw new IncorrectDaoOperation("Such user already exists");
+        }
+        try {
+            usersCollection.withWriteConcern(WriteConcern.MAJORITY).insertOne(user);
+        } catch (MongoWriteException e) {
+            System.out.println("Error occured: addUser() " + "Category: " + e.getError().getCategory());
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -79,6 +85,12 @@ public class UserDao extends AbstractMFlixDao {
      * @return true if successful
      */
     public boolean createUserSession(String userId, String jwt) {
+        // Ticket: Handling Errors - implement a safeguard against
+        // creating a session with the same jwt token.
+        if (sessionsCollection.find(Filters.eq("jwt", jwt)).first() != null) {
+           return false;
+        }
+
         // Ticket: User Management - implement the method that allows session information to be
         // stored in it's designated collection.
         if (Optional.ofNullable(sessionsCollection.find( Filters.eq("user_id", userId) ).first()).isPresent()) {
@@ -87,8 +99,6 @@ public class UserDao extends AbstractMFlixDao {
             sessionsCollection.insertOne(new Session(userId, jwt));
         }
         return true;
-        //TODO > Ticket: Handling Errors - implement a safeguard against
-        // creating a session with the same jwt token.
     }
 
     /**
@@ -133,14 +143,19 @@ public class UserDao extends AbstractMFlixDao {
         // remove user sessions
         // User Management - implement the delete user method
         Bson userToDeleteQuery = Filters.eq("email", email);
-        DeleteResult deleteUserResult = usersCollection.deleteOne(userToDeleteQuery);
-
+        // Ticket: Handling Errors - make this method more robust by
+        // handling potential exceptions.
+        DeleteResult deleteUserResult;
+        try {
+            deleteUserResult = usersCollection.deleteOne(userToDeleteQuery);
+        } catch (MongoException e) {
+            System.out.println("Error occured: deleteUser(): " + e.getMessage());
+            return false;
+        }
         Bson sessionToDeleteQuery = Filters.eq("user_id", email);
         sessionsCollection.deleteMany(sessionToDeleteQuery);
 
         return deleteUserResult.getDeletedCount() > 0;
-        //TODO > Ticket: Handling Errors - make this method more robust by
-        // handling potential exceptions.
     }
 
     /**
@@ -166,14 +181,19 @@ public class UserDao extends AbstractMFlixDao {
             prefsDoc.append(prefKey, String.valueOf(userPreferences.get(prefKey)));
         }
 
-        usersCollection.updateOne(
-                findUserByEmailQuery,
-                Updates.set("preferences", prefsDoc),
-                new UpdateOptions().upsert(true)
-        );
-
-        //TODO > Ticket: Handling Errors - make this method more robust by
+        // Ticket: Handling Errors - make this method more robust by
         // handling potential exceptions when updating an entry.
+        try {
+            usersCollection.updateOne(
+                    findUserByEmailQuery,
+                    Updates.set("preferences", prefsDoc),
+                    new UpdateOptions().upsert(true)
+            );
+        } catch (MongoException e) {
+            System.out.println("Error occured: updateUserPreferences(): " + e.getMessage());
+            return false;
+        }
+
         return true;
     }
 }

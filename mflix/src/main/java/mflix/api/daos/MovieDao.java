@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.mongodb.client.model.Filters.all;
 import static com.mongodb.client.model.Projections.fields;
@@ -26,6 +28,8 @@ public class MovieDao extends AbstractMFlixDao {
     public static String MOVIES_COLLECTION = "movies";
 
     private MongoCollection<Document> moviesCollection;
+
+    private static final Pattern HEXADECIMAL_PATTERN = Pattern.compile("\\p{XDigit}+");
 
     @Autowired
     public MovieDao(
@@ -48,10 +52,10 @@ public class MovieDao extends AbstractMFlixDao {
      * @return true if valid movieId.
      */
     private boolean validIdValue(String movieId) {
-        //TODO> Ticket: Handling Errors - implement a way to catch a
+        //Handling Errors - implement a way to catch a
         //any potential exceptions thrown while validating a movie id.
         //Check out this method's use in the method that follows.
-        return true;
+        return HEXADECIMAL_PATTERN.matcher(movieId).matches();
     }
 
     /**

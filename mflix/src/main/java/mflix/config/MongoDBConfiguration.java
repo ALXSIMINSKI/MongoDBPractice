@@ -47,7 +47,7 @@ public class MongoDBConfiguration {
 //
 //        MongoClient mongoClient = MongoClients.create(settings);
 //
-//        return mongoClient;
+//        return mongoClient;ErrorHandling
 
         MongoClient mongoClient = MongoClients.create(connectionString);
 

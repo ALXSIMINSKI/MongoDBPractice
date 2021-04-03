@@ -83,10 +83,16 @@ public class CommentDao extends AbstractMFlixDao {
         // comment.
 
         validateComment(comment);
-        commentCollection.insertOne(comment);
 
-        // TODO> Ticket - Handling Errors: Implement a try catch block to
+        // Ticket - Handling Errors: Implement a try catch block to
         // handle a potential write exception when given a wrong commentId.
+
+        try {
+            commentCollection.insertOne(comment);
+        } catch (MongoWriteException e) {
+            System.out.println("Error occured: addComment() with params: " + comment.toString() + "Category: " + e.getError().getCategory());
+            return null;
+        }
         return comment;
     }
 
@@ -126,10 +132,15 @@ public class CommentDao extends AbstractMFlixDao {
 
         Bson fieldsToUpdate = Updates.combine(Updates.set("text", text), Updates.set("date", new Date()));
         UpdateOptions options = new UpdateOptions().upsert(true);
-        UpdateResult updateResult = commentCollection.updateOne(findById, fieldsToUpdate, options);
-
-        // TODO> Ticket - Handling Errors: Implement a try catch block to
+        UpdateResult updateResult;
+        // Ticket - Handling Errors: Implement a try catch block to
         // handle a potential write exception when given a wrong commentId.
+        try {
+            updateResult = commentCollection.updateOne(findById, fieldsToUpdate, options);
+        } catch (MongoWriteException e) {
+            System.out.println("Error occured: updateComment() " + "Category: " + e.getError().getCategory());
+            return false;
+        }
         return updateResult.wasAcknowledged();
     }
 
@@ -150,10 +161,16 @@ public class CommentDao extends AbstractMFlixDao {
                 Filters.eq("_id", new ObjectId(commentId)),
                        Filters.eq("email", email)
         );
-        DeleteResult deleteResult = commentCollection.deleteOne(findCommentToDelete);
         // TIP: make sure to match only users that own the given commentId
-        // TODO> Ticket Handling Errors - Implement a try catch block to
+        // Ticket Handling Errors - Implement a try catch block to
         // handle a potential write exception when given a wrong commentId.
+        DeleteResult deleteResult;
+        try {
+            deleteResult = commentCollection.deleteOne(findCommentToDelete);
+        } catch (MongoWriteException e) {
+            System.out.println("Error occured: deleteComment() " + "Category: " + e.getError().getCategory());
+            return false;
+        }
         return deleteResult.getDeletedCount() > 0;
     }
 
